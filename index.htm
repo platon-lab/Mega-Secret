@@ -327,15 +327,15 @@ window.addEventListener('resize', resize);
 
 // Game state
 let state = 'start';
-let player = { x: 0, y: 0, tx: 0, ty: 0, r: 22, lives: 25, invincible: 0 };
+let player = { x: 0, y: 0, tx: 0, ty: 0, r: 22, lives: 100, invincible: 0 };
 let boss = { x: 0, y: 0, tx: 0, ty: 0, w: 80, h: 80, phase: 1, hp: 100, maxHp: 100, shake: 0 };
-const bossHpByPhase = [0, 100, 85, 70, 50, 30]; // HP at start of each phase
+const bossHpByPhase = [0, 100, 85, 70, 50, 30, 20]; // HP at start of each phase
 let projectiles = [];
 let lasers = [];
 let particles = [];
 let score = 0;
 let phaseTimer = 0;
-let phaseDuration = [0, 25, 25, 30, 30, 35]; // seconds per phase
+let phaseDuration = [0, 25, 25, 30, 30, 35, 45]; // seconds per phase
 let phaseProgress = 0;
 let spawnTimer = 0;
 let frameCount = 0;
@@ -344,10 +344,10 @@ let announcingPhase = false;
 
 // Assets
 let devilImg = null;
-let playerImgs = [null, null, null, null, null, null]; // index 1-5 for phases
+let playerImgs = [null, null, null, null, null, null, null]; // index 1-6 for phases
 let assetsLoaded = 0;
 
-const playerSrcs = ['', 'Tito.png', 'Smartik.png', 'Junior.png', 'Fil.png', 'Milka.png'];
+const playerSrcs = ['', 'Tito.png', 'Smartik.png', 'Junior.png', 'Fil.png', 'Milka.png', 'Bark.png'];
 
 function loadAssets() {
   devilImg = new Image();
@@ -355,7 +355,7 @@ function loadAssets() {
   devilImg.onerror = () => { devilImg = null; assetsLoaded++; };
   devilImg.src = 'DEVIL.png';
 
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 6; i++) {
     const img = new Image();
     const idx = i;
     img.onload = () => assetsLoaded++;
@@ -366,7 +366,7 @@ function loadAssets() {
 }
 
 function getPlayerImg() {
-  const phase = Math.min(5, Math.max(1, boss.phase));
+  const phase = Math.min(6, Math.max(1, boss.phase));
   return playerImgs[phase];
 }
 
@@ -428,7 +428,7 @@ function initGame() {
   H = canvas.height = window.innerHeight;
   player.x = W / 2; player.y = H * 0.75;
   player.tx = player.x; player.ty = player.y;
-  player.lives = 50; player.invincible = 0;
+  player.lives = 100; player.invincible = 0;
   boss.x = W / 2; boss.y = H * 0.12;
   boss.tx = W / 2; boss.ty = H * 0.12;
   boss.phase = 1; boss.shake = 0;
@@ -442,7 +442,7 @@ function initGame() {
 function showPhaseAnnounce(phase, cb) {
   announcingPhase = true;
   const el = phaseAnnounce;
-  el.textContent = phase <= 5 ? `👿 ФАЗА ${phase}` : '💀 ФІНАЛ!';
+  el.textContent = phase <= 6 ? `👿 ФАЗА ${phase}` : '💀 ФІНАЛ!';
   el.style.opacity = '1';
   el.style.fontSize = '3.5rem';
   el.style.transition = 'opacity 0.5s';
@@ -462,7 +462,7 @@ function updateUI() {
   const pct = Math.min(100, (phaseProgress / phaseDuration[boss.phase]) * 100);
   phaseBar.style.width = pct + '%';
   const hpStart = bossHpByPhase[boss.phase] || 100;
-  const hpEnd = boss.phase < 5 ? bossHpByPhase[boss.phase + 1] : 0;
+  const hpEnd = boss.phase < 6 ? bossHpByPhase[boss.phase + 1] : 0;
   const hpCurrent = hpStart - (hpStart - hpEnd) * Math.min(1, phaseProgress / phaseDuration[boss.phase]);
   hpBar.style.width = hpCurrent + '%';
   if (hpCurrent < 30) {
@@ -640,6 +640,30 @@ function spawnAttack(phase) {
         const a = (i / 16) * Math.PI * 2;
         spawnBullet({ x: bx, y: by + 40, vx: Math.cos(a) * 4.5, vy: Math.sin(a) * 4.5, r: 7, color: '#ff0000', glow: '#ff6600' });
       }
+    }
+  }
+
+  // ДОДАНО: Шоста, найскладніша фаза
+  if (phase === 6) {
+    if (frameCount % 8 === 0) {
+      const x = Math.random() * W;
+      spawnBullet({ x, y: -20, vx: (Math.random() - 0.5) * 6, vy: 6 + Math.random() * 6, r: 12, color: '#ffffff', glow: '#ff0000', spinning: true });
+    }
+    if (frameCount % 20 === 0) {
+      const angle = (frameCount * 0.05) % (Math.PI * 2);
+      for (let i = 0; i < 10; i++) {
+        const a = angle + (i / 10) * Math.PI * 2;
+        spawnBullet({ x: bx, y: by + 40, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, r: 10, color: '#000000', glow: '#ff0000' });
+      }
+    }
+    if (frameCount % 45 === 0) {
+      spawnLaser({ side: Math.random() > 0.5 ? 'left' : 'right', y: Math.random() * H, duration: 35, color: '#ff0000', width: 15 });
+      spawnLaser({ side: Math.random() > 0.5 ? 'top' : 'bottom', x: Math.random() * W, duration: 35, color: '#ff0000', width: 15, vertical: true });
+    }
+    if (frameCount % 30 === 0) {
+      boss.tx = W * (0.1 + Math.random() * 0.8);
+      boss.ty = H * (0.05 + Math.random() * 0.8);
+      boss.shake = 15;
     }
   }
 }
@@ -873,8 +897,8 @@ function loop(timestamp) {
         phaseTimer = 0;
         boss.phase++;
         
-        // ЗМІНЕНО: тепер замість прямого TrueEnd запускається відео!
-        if (boss.phase > 5) {
+        // ЗМІНЕНО: відео запускається тільки після 6 фази
+        if (boss.phase > 6) {
           state = 'trueend';
           playEndVideo(); 
         } else {
